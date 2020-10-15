@@ -1,5 +1,5 @@
 require 'nokogiri'
-require 'http'
+require 'net/http'
 
 CSS_SELECTORS = {
   case_no:       ['NO',       '#lblRegisteredNo'],
@@ -13,19 +13,12 @@ CSS_SELECTORS = {
   event:         ['', '#gvLMES tr:not(:first-child)'],
 }
 
-request_url = 'http://app.echr.coe.int/SOP/'
+request_uri = URI('http://app.echr.coe.int/SOP/')
 case_no     = ARGV[0]
 output      = []
 
 puts 'Collecting required params...'
-parsed_data = Nokogiri::HTML.parse(HTTP.get(request_url).to_s)
-
-headers = {
-  'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36',
-  'Accept':     'text/html',
-  'Cookie':     'SERVERID=Court177',
-  'Referer':    request_url,
-}
+parsed_data = Nokogiri::HTML.parse(Net::HTTP.get(request_uri))
 
 data = {
   '__EVENTTARGET':   '',
@@ -41,10 +34,9 @@ data.merge! (['__VIEWSTATE', '__VIEWSTATEGENERATOR', '__EVENTVALIDATION'].inject
 end)
 
 puts 'Querying...'
-response = HTTP.headers(headers).post(request_url, form: data)
-status = response.status
+response = Net::HTTP.post_form(request_uri, data)
 
-if(response.status == 200)
+if response.code == '200'
   parsed_response = Nokogiri::HTML.parse(response.body.to_s)
   error_panel     = parsed_response.css('#ErrorPanel').first
 
